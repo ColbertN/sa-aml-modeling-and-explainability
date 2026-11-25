@@ -1,0 +1,2 @@
+unit,group_split,threshold,roc_auc,average_precision,true_negative,false_positive,false_negative,true_positive,precision_positive,recall_positive,train_rows,validation_rows,test_rows
+transaction,Account_id,0.8575514554977417,0.9313533162719724,0.6964747292900432,267811,2623,10357,10099,0.7938217261436881,0.4936937817755182,725065,231284,290890

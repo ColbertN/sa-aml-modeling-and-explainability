@@ -1,0 +1,2 @@
+unit,sequence_views,auxiliary_event_task,counterparty_type_included,sequence_length,padding,padding_value,threshold,roc_auc,average_precision,true_negative,false_positive,false_negative,true_positive,precision_positive,recall_positive,feasible_0.8_0.8_on_validation,train_accounts,validation_accounts,test_accounts,input_features
+Account_id,all+inbound+outbound,True,True,100,post,-1000000.0,0.755875825881958,0.9979578629032257,0.9906402951408856,6188,12,51,749,0.9842312746386334,0.93625,True,10240,5600,7000,231

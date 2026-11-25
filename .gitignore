@@ -1,0 +1,38 @@
+# Publication work is always private and excluded from this repository.
+paper/
+**/paper/
+papers/
+manuscript/
+*.tex
+*.bib
+*.sty
+*.cls
+
+# Local environments and secrets
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+.ipynb_checkpoints/
+.DS_Store
+
+# Raw/generated data and model binaries
+data/raw/*.csv
+data/processed/
+data/sampled/
+data/sequence/*.npy
+data/sequence/*.npz
+models/**
+!models/README.md
+results/**/test_predictions.csv
+results/**/threshold_candidates.csv
+results/**/*.keras
+results/**/*.h5
+results/**/*.joblib
+results/**/*.pkl
+
+# Temporary clone used while publishing this repository
+_github_repo/
