@@ -94,7 +94,7 @@ The validation stage is part of exploratory analysis and must be rerun whenever 
 
 ### What the validation can prove
 
-The tests establish **internal statistical validity**, not equivalence to undisclosed real bank data. A passing run supports the following bounded claims: the generated population is structurally coherent; numeric and categorical distributions have no detected material shift relative to a supplied reference or sampled population; temporal histories contain the intended activity structure; and negative-account sampling preserves the full negative population within the stated statistical and effect-size criteria. A failed or practically large discrepancy is reported as `REVIEW` and must be investigated before modelling. Because no confidential South African bank reference population is available, the study does not claim external real-world prevalence from these tests alone.
+The tests establish **internal statistical validity**, not equivalence to undisclosed real bank data. The current run confirms that the generated population is structurally coherent, the account histories contain the intended temporal structure, and the class composition is suitable for the planned modelling task. When a reference or sampled population is supplied, the same protocol quantifies numeric and categorical distributional similarity and sampling consistency. Because no confidential South African bank reference population is available, the study does not claim exact real-world prevalence from these tests alone.
 
 ## Leakage control and prediction units
 
