@@ -5,7 +5,7 @@ Reproducible research code for leakage-controlled anti-money-laundering (AML) de
 > **Repository scope:** this is the modelling and reproducibility repository. Manuscripts, conference submissions, journal papers, LaTeX sources, cover letters, and publication-specific files are intentionally excluded.
 
 **Project name:** SA-AML Sequence Intelligence  \
-**Data source:** [SA-AML-DATA-SIMULATION](https://github.com/ColbertN/SA-AML-DATA-SIMULATION)
+**Data sources:** [SA-AML-DATA-SIMULATION repository](https://github.com/ColbertN/SA-AML-DATA-SIMULATION) · [Zenodo data record 22803333](https://zenodo.org/records/22803333)
 
 ## Why this project exists
 
@@ -74,7 +74,7 @@ flowchart LR
 
 ## Data and provenance
 
-The raw synthetic dataset is maintained separately in [SA-AML-DATA-SIMULATION](https://github.com/ColbertN/SA-AML-DATA-SIMULATION). It was simulated because realistic South African AML transaction histories are not openly available for research. The simulator combines publicly documented South African financial-crime patterns with locally relevant currencies, banking locations, payment channels, grant flows, corridor transactions, customer context, and typology-driven episodes.
+The raw synthetic dataset is maintained separately in [SA-AML-DATA-SIMULATION](https://github.com/ColbertN/SA-AML-DATA-SIMULATION) and deposited as the citable [Zenodo record 22803333](https://zenodo.org/records/22803333). The Zenodo record is the appropriate reference for the large data release, which is intentionally not stored in this modelling repository. The dataset was simulated because realistic South African AML transaction histories are not openly available for research. The simulator combines publicly documented South African financial-crime patterns with locally relevant currencies, banking locations, payment channels, grant flows, corridor transactions, customer context, and typology-driven episodes.
 
 The modelling repository does **not** commit the approximately gigabyte-scale raw CSV, generated account histories, or trained model binaries. This keeps the repository light and avoids distributing data outside its intended project location. The schema is included at [`data/raw/SA_SAML_D_schema.json`](data/raw/SA_SAML_D_schema.json), and [`data/README.md`](data/README.md) explains how to obtain and validate the data.
 
@@ -287,6 +287,8 @@ For inference on unseen data, use the persisted preprocessing artefacts and mode
 The simulator and its schema, generation logic, audit checks, and South African typology documentation are maintained separately:
 
 **[ColbertN/SA-AML-DATA-SIMULATION](https://github.com/ColbertN/SA-AML-DATA-SIMULATION)**
+
+The large downloadable data release is archived at **[Zenodo record 22803333](https://zenodo.org/records/22803333)**. Cite the Zenodo record when referring to the exact data release used in an experiment.
 
 ## Licence and citation
 
