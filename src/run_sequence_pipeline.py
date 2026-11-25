@@ -12,5 +12,5 @@ for name in [
     "make_event_contribution_views.py",
 ]:
     print(f"\n===== {name} =====", flush=True)
-    subprocess.run([sys.executable, str(ROOT / "scripts" / name)], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, str(ROOT / "src" / name)], cwd=ROOT, check=True)
 print("\nAccount-level sequence workflow completed.")

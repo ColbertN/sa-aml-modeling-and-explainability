@@ -4,13 +4,13 @@ This stage is deliberately independent of model training.  It checks whether
 the generated population is internally coherent and whether an optional
 reference or sampled population is distributionally comparable.  It writes
 CSV/JSON summaries and one figure per diagnostic under
-``results/simulation_validation``.
+``results/validation``.
 
 Examples
 --------
-python scripts/validate_simulation.py
-python scripts/validate_simulation.py --reference path/to/reference.csv
-python scripts/validate_simulation.py --sample path/to/negative_sample.csv
+python scripts/run_all.py
+python src/validate_simulation.py --reference path/to/reference.csv
+python src/validate_simulation.py --sample path/to/negative_sample.csv
 
 The raw CSV is not committed to Git.  Set ``AML_RAW_DATA`` or pass ``--raw``.
 """
@@ -29,7 +29,7 @@ from scipy.stats import chi2_contingency, ks_2samp, wasserstein_distance
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RAW = ROOT / "data" / "raw" / "SA_SAML_D.csv"
-DEFAULT_OUT = ROOT / "results" / "simulation_validation"
+DEFAULT_OUT = ROOT / "results" / "validation"
 TARGET = "Is_laundering"
 ACCOUNT = "Account_id"
 CATEGORY_COLUMNS = [
@@ -230,15 +230,25 @@ def run(args: argparse.Namespace) -> dict:
     out = Path(args.output or os.environ.get("AML_VALIDATION_OUTPUT", DEFAULT_OUT))
     out.mkdir(parents=True, exist_ok=True)
     fig_dir = out / "figures"
-    table_dir = out / "tables"
     fig_dir.mkdir(parents=True, exist_ok=True)
-    table_dir.mkdir(parents=True, exist_ok=True)
     frame = pd.read_csv(raw_path, low_memory=False)
     result = {"raw_path": str(raw_path), "summary": summary(frame), "validation": {}}
-    pd.DataFrame([result["summary"]]).to_csv(table_dir / "population_summary.csv", index=False)
-    numeric_summary(frame).to_csv(table_dir / "numeric_summary.csv", index=False)
-    categorical_summary(frame).to_csv(table_dir / "categorical_summary.csv", index=False)
-    temporal_summary(frame).to_csv(table_dir / "temporal_summary.csv", index=False)
+    population_table = pd.DataFrame([result["summary"]])
+    numeric_table = numeric_summary(frame)
+    categorical_table = categorical_summary(frame)
+    temporal_table = temporal_summary(frame)
+    population_table.to_csv(out / "population_summary.csv", index=False)
+    numeric_table.to_csv(out / "numeric_summary.csv", index=False)
+    categorical_table.to_csv(out / "categorical_summary.csv", index=False)
+    temporal_table.to_csv(out / "temporal_summary.csv", index=False)
+    try:
+        with pd.ExcelWriter(out / "validation_results.xlsx", engine="openpyxl") as writer:
+            population_table.to_excel(writer, sheet_name="population", index=False)
+            numeric_table.to_excel(writer, sheet_name="numeric", index=False)
+            categorical_table.to_excel(writer, sheet_name="categorical", index=False)
+            temporal_table.to_excel(writer, sheet_name="temporal", index=False)
+    except ImportError:
+        result["excel_warning"] = "openpyxl is not installed; CSV outputs remain available."
 
     labels = account_labels(frame)
     labelled_bar(labels.value_counts().sort_index(), "Account-level class prevalence", "Number of accounts", fig_dir / "account_class_prevalence.png")
@@ -248,13 +258,13 @@ def run(args: argparse.Namespace) -> dict:
     if args.reference:
         reference = pd.read_csv(args.reference, low_memory=False)
         n, c = compare_distributions(frame, reference)
-        n.to_csv(table_dir / "reference_numeric_comparison.csv", index=False)
-        c.to_csv(table_dir / "reference_categorical_comparison.csv", index=False)
+        n.to_csv(out / "reference_numeric_comparison.csv", index=False)
+        c.to_csv(out / "reference_categorical_comparison.csv", index=False)
         result["validation"]["reference"] = {"numeric_tests": int(len(n)), "categorical_tests": int(len(c)), "pass_rule": "p >= 0.05; inspect effect sizes and Wasserstein distance"}
     if args.sample:
         sampled = pd.read_csv(args.sample, low_memory=False)
         s = sampling_comparison(frame, sampled)
-        s.to_csv(table_dir / "negative_sampling_comparison.csv", index=False)
+        s.to_csv(out / "negative_sampling_comparison.csv", index=False)
         result["validation"]["negative_sampling"] = {"tests": int(len(s)), "pass_rule": "p >= 0.05; inspect effect sizes and category coverage"}
 
     (out / "validation_summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
@@ -267,7 +277,7 @@ def main() -> None:
     parser.add_argument("--raw", help="Raw simulator CSV; defaults to AML_RAW_DATA or data/raw/SA_SAML_D.csv")
     parser.add_argument("--reference", help="Optional reference CSV for KS/Wasserstein/chi-square comparisons")
     parser.add_argument("--sample", help="Optional sampled CSV for negative-population representativeness checks")
-    parser.add_argument("--output", help="Output directory; defaults to results/simulation_validation")
+    parser.add_argument("--output", help="Output directory; defaults to results/validation")
     run(parser.parse_args())
 
 

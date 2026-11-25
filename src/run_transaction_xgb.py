@@ -13,5 +13,5 @@ STEPS = [
 
 for step in STEPS:
     print(f"\n===== {step} =====", flush=True)
-    subprocess.run([sys.executable, str(ROOT / "scripts" / step)], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, str(ROOT / "src" / step)], cwd=ROOT, check=True)
 print("\nTransaction XGBoost workflow completed.")

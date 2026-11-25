@@ -33,16 +33,12 @@ This repository tests an important modelling question: **does an account history
 ├── requirements.txt
 ├── .gitignore
 ├── scripts/
-│   ├── run_sequence_pipeline.py       # end-to-end account-level workflow
-│   ├── run_transaction_xgb.py         # end-to-end transaction benchmark
-│   ├── train_sequence_from_scratch.py
-│   ├── train_transaction_xgb.py
-│   ├── calibration_explainability.py
-│   ├── make_sequence_figures.py
-│   ├── make_event_contribution_views.py
-│   ├── transaction_xgb_calibration.py
-│   ├── transaction_xgb_explainability.py
-│   └── ...
+│   └── run_all.py                     # single end-to-end entry point
+├── src/
+│   ├── validate_simulation.py         # mathematical/statistical validation
+│   ├── run_sequence_pipeline.py       # account-level workflow
+│   ├── run_transaction_xgb.py         # transaction-level benchmark
+│   └── ...                            # internal stages and helpers
 ├── data/
 │   ├── README.md
 │   └── raw/SA_SAML_D_schema.json        # versioned schema; raw CSV is not committed
@@ -82,19 +78,23 @@ The raw synthetic dataset is maintained separately in [SA-AML-DATA-SIMULATION](h
 
 The modelling repository does **not** commit the approximately gigabyte-scale raw CSV, generated account histories, or trained model binaries. This keeps the repository light and avoids distributing data outside its intended project location. The schema is included at [`data/raw/SA_SAML_D_schema.json`](data/raw/SA_SAML_D_schema.json), and [`data/README.md`](data/README.md) explains how to obtain and validate the data.
 
-## Pre-modelling simulation validation
+## Mathematical and statistical simulation validation
 
-Before any classifier is fitted, [`scripts/validate_simulation.py`](scripts/validate_simulation.py) performs a model-independent validation pass. This prevents machine-learning performance from being mistaken for proof that the simulator is realistic. The validation checks population composition, missingness, account-history lengths, numeric quantiles and tails, categorical coverage, temporal inter-arrival behaviour, and optional comparisons against a reference or sampled population.
+Before any classifier is fitted, [`src/validate_simulation.py`](src/validate_simulation.py) performs a model-independent validation pass. This prevents machine-learning performance from being mistaken for proof that the simulator is realistic. The validation checks population composition, missingness, account-history lengths, numeric quantiles and tails, categorical coverage, temporal inter-arrival behaviour, and optional comparisons against a reference or sampled population.
 
-The script uses Kolmogorov--Smirnov and Wasserstein distances for numeric distributions, chi-square tests and Cramér's V for categorical distributions, account-level burstiness and inter-arrival summaries for temporal structure, and explicit checks for suspicious-only categories and negative-sampling representativeness. It writes independent figures, CSV tables, and a JSON summary under [`results/simulation_validation/`](results/simulation_validation/).
+The script uses Kolmogorov--Smirnov and Wasserstein distances for numeric distributions, chi-square tests and Cramér's V for categorical distributions, account-level burstiness and inter-arrival summaries for temporal structure, and explicit checks for suspicious-only categories and negative-sampling representativeness. It writes independent figures under [`results/validation/figures/`](results/validation/figures/) and CSV, Excel, and JSON results directly under [`results/validation/`](results/validation/).
 
 Reference outputs from the current regenerated population include 35,000 accounts, 1,441,479 transactions, 4,000 laundering accounts, 31,000 normal accounts, an 11.43% laundering-account rate, a 7.15% laundering-transaction rate, 58 columns, and zero missing cells.
 
-![Account class prevalence](results/simulation_validation/figures/account_class_prevalence.png)
+![Account class prevalence](results/validation/figures/account_class_prevalence.png)
 
-![Account history lengths](results/simulation_validation/figures/account_history_lengths.png)
+![Account history lengths](results/validation/figures/account_history_lengths.png)
 
 The validation stage is part of exploratory analysis and must be rerun whenever the simulator release, raw data, or sampling procedure changes. It complements the later leakage audit and predictive evaluation; it does not use the target as a predictive feature.
+
+### What the validation can prove
+
+The tests establish **internal statistical validity**, not equivalence to undisclosed real bank data. A passing run supports the following bounded claims: the generated population is structurally coherent; numeric and categorical distributions have no detected material shift relative to a supplied reference or sampled population; temporal histories contain the intended activity structure; and negative-account sampling preserves the full negative population within the stated statistical and effect-size criteria. A failed or practically large discrepancy is reported as `REVIEW` and must be investigated before modelling. Because no confidential South African bank reference population is available, the study does not claim external real-world prevalence from these tests alone.
 
 ## Leakage control and prediction units
 
@@ -117,7 +117,7 @@ This distinction prevents repeated account histories from leaking across train, 
 6. Train the GRU with class weights and an auxiliary event-level task to improve temporal representation learning.
 7. Select an operating threshold on validation data using the precision-recall trade-off, then report the frozen test metrics.
 
-The current reference configuration uses all, inbound, and outbound sequence views, includes counterparty type, and retains 231 post-encoding input features. The full implementation is in [`scripts/train_sequence_from_scratch.py`](scripts/train_sequence_from_scratch.py).
+The current reference configuration uses all, inbound, and outbound sequence views, includes counterparty type, and retains 231 post-encoding input features. The full implementation is in [`src/train_sequence_from_scratch.py`](src/train_sequence_from_scratch.py).
 
 ## Methodology summary
 
@@ -265,11 +265,10 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Place the simulator's CSV at the path configured by the scripts (or update the path in one configuration location), then run:
+Place the simulator's CSV at the path configured by the scripts (or set `AML_RAW_DATA`), then run the complete workflow:
 
 ```bash
-python scripts/run_sequence_pipeline.py
-python scripts/run_transaction_xgb.py
+python scripts/run_all.py
 ```
 
 For inference on unseen data, use the persisted preprocessing artefacts and model loaders rather than refitting encoders or scalers. The prediction scripts document the expected feature schema and account grouping.

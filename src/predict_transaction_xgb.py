@@ -34,5 +34,5 @@ def main(input_path, output_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        raise SystemExit("Usage: py -3.11 scripts/predict_transaction_xgb.py input.csv output.csv")
+        raise SystemExit("Usage: py -3.11 src/predict_transaction_xgb.py input.csv output.csv")
     main(Path(sys.argv[1]), Path(sys.argv[2]))

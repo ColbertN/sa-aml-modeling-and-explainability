@@ -1,19 +1,15 @@
-# Scripts
+# Public entry point
 
-The scripts are intentionally organised around two reproducible entry points:
-
-* `run_sequence_pipeline.py` runs account-level sequence preparation, GRU training, evaluation, calibration, and explainability.
-* `run_transaction_xgb.py` runs the transaction-level XGBoost benchmark, evaluation, calibration, and explainability.
-* `validate_simulation.py` performs the pre-modelling statistical, temporal, structural, and optional sampling/reference validation.
-
-The remaining scripts are the stages called by those entry points. They can be run individually when debugging or regenerating one artefact family. All scripts resolve paths relative to the repository root so that the workflow is portable across machines.
-
-Before running, verify the input data path and simulator release. Do not change the test set after threshold selection, and do not fit preprocessing or calibration objects on test data.
-
-Run the simulator validation before training:
+The repository deliberately keeps the public command surface small:
 
 ```bash
-python scripts/validate_simulation.py
+python scripts/run_all.py
 ```
 
-Optional comparisons can be supplied with `--reference path/to/reference.csv` and `--sample path/to/negative_sample.csv`. Outputs are written to `results/simulation_validation/` as independent figures, CSV tables, and `validation_summary.json`.
+This runs the complete workflow in order:
+
+1. Mathematical and statistical simulation validation.
+2. Account-level sequence preprocessing, GRU training, evaluation, calibration, and explainability.
+3. Transaction-level XGBoost benchmarking, evaluation, calibration, and explainability.
+
+The implementation modules and individual workflow stages are stored in [`src/`](../src/). They can be run separately for debugging, but `run_all.py` is the recommended reproducible entry point. Set `AML_RAW_DATA` when the raw CSV is stored outside `data/raw/SA_SAML_D.csv`.
