@@ -1,0 +1,14 @@
+{
+  "raw_path": "C:\\Users\\Colbert Nekhumbe\\OneDrive\\Documents\\phd - UJ\\AML research Project\\SA Data Modeling\\data\\raw\\SA_SAML_D.csv",
+  "summary": {
+    "transactions": 1441479,
+    "accounts": 35000,
+    "laundering_accounts": 4000,
+    "normal_accounts": 31000,
+    "laundering_account_rate": 0.11428571428571428,
+    "laundering_transaction_rate": 0.07153832972939599,
+    "missing_cells": 0,
+    "columns": 58
+  },
+  "validation": {}
+}

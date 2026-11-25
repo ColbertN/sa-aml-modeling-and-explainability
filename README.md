@@ -82,6 +82,20 @@ The raw synthetic dataset is maintained separately in [SA-AML-DATA-SIMULATION](h
 
 The modelling repository does **not** commit the approximately gigabyte-scale raw CSV, generated account histories, or trained model binaries. This keeps the repository light and avoids distributing data outside its intended project location. The schema is included at [`data/raw/SA_SAML_D_schema.json`](data/raw/SA_SAML_D_schema.json), and [`data/README.md`](data/README.md) explains how to obtain and validate the data.
 
+## Pre-modelling simulation validation
+
+Before any classifier is fitted, [`scripts/validate_simulation.py`](scripts/validate_simulation.py) performs a model-independent validation pass. This prevents machine-learning performance from being mistaken for proof that the simulator is realistic. The validation checks population composition, missingness, account-history lengths, numeric quantiles and tails, categorical coverage, temporal inter-arrival behaviour, and optional comparisons against a reference or sampled population.
+
+The script uses Kolmogorov--Smirnov and Wasserstein distances for numeric distributions, chi-square tests and Cramér's V for categorical distributions, account-level burstiness and inter-arrival summaries for temporal structure, and explicit checks for suspicious-only categories and negative-sampling representativeness. It writes independent figures, CSV tables, and a JSON summary under [`results/simulation_validation/`](results/simulation_validation/).
+
+Reference outputs from the current regenerated population include 35,000 accounts, 1,441,479 transactions, 4,000 laundering accounts, 31,000 normal accounts, an 11.43% laundering-account rate, a 7.15% laundering-transaction rate, 58 columns, and zero missing cells.
+
+![Account class prevalence](results/simulation_validation/figures/account_class_prevalence.png)
+
+![Account history lengths](results/simulation_validation/figures/account_history_lengths.png)
+
+The validation stage is part of exploratory analysis and must be rerun whenever the simulator release, raw data, or sampling procedure changes. It complements the later leakage audit and predictive evaluation; it does not use the target as a predictive feature.
+
 ## Leakage control and prediction units
 
 The target and simulator-internal fields are never used as predictive inputs. This includes laundering labels, scenario identifiers, scenario descriptions, typology labels, generated-count fields, and other fields that encode the simulator's generation decision. Account identifiers are used only to group transactions and create disjoint splits; they are not treated as ordinary numeric predictors.
