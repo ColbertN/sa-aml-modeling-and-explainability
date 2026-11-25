@@ -105,6 +105,69 @@ This distinction prevents repeated account histories from leaking across train, 
 
 The current reference configuration uses all, inbound, and outbound sequence views, includes counterparty type, and retains 231 post-encoding input features. The full implementation is in [`scripts/train_sequence_from_scratch.py`](scripts/train_sequence_from_scratch.py).
 
+## Methodology summary
+
+This section documents exactly how fields are treated before modelling. The generated model manifest and preprocessing artefact remain the authoritative machine-readable record for a particular run; the summary below explains the design in plain language.
+
+### Feature groups
+
+| Feature group | Examples | Treatment | Reason |
+|---|---|---|---|
+| Prediction target | `Is_laundering`, `Account_is_laundering` | Excluded from inputs; retained only as labels | These define the outcome being predicted. |
+| Grouping identifiers | `Account_id`, `Transaction_id`, `Sender_account`, `Receiver_account`, `Counterparty_account` | Used for grouping, ordering, joins, and split checks; not ordinary predictors | Prevents memorisation of repeated accounts and preserves the prediction unit. |
+| Transaction behaviour | `Amount`, `Direction`, payment type, currencies, cross-border and SADC indicators, jurisdiction tier, social-grant and virtual-asset indicators | Numeric fields are scaled; low-cardinality categories are one-hot encoded | Represents observable transaction behaviour available to the model. |
+| Customer and socioeconomic context | Income estimate, grant linkage, customer type, employment, province, age, education, inclusion segment, channel preference, business status, PEP and exposure context | Numeric fields are scaled; categorical fields are encoded or frequency encoded | Adds pre-transaction account context without using the target itself. |
+| Routing and counterparty context | Bank locations, counterparty country, `Counterparty_type`, foreign-counterparty context | Encoded; high-cardinality fields use training-set frequency encoding | Retains routing information while controlling dimensionality. |
+| Date/time source fields | `Date`, `Time`, `Account_open_date` | Used to derive `event_time` and account age; raw date/time columns are not predictors | Ensures chronological ordering without exposing a raw timestamp representation. |
+
+### Explicit leakage exclusions
+
+The primary implementation excludes simulator labels and internal generation decisions. The complete exclusion list is grouped below for readability.
+
+| Excluded family | Fields |
+|---|---|
+| Target and assigned outcome | `Is_laundering`, `Account_is_laundering`, `Laundering_type` |
+| AML scenario and typology | `AML_scenario_category`, `AML_scenario_code`, `AML_predicate_offence`, `AML_stage`, `AML_risk_sector`, `AML_scenario_source_keys`, `Scenario_reference_key`, `Scenario_detail`, `Scenario_label`, `Typology_stage` |
+| Direct suspicion/behaviour labels | `Suspicion_indicator`, `Behaviour_component`, `Legitimate_behaviour`, `Normal_behavior_category`, `Normal_behavior_source_keys` |
+| Simulator generation controls | `Opened_for_laundering_flag`, `Scenario_forced_coverage_flag`, `Account_laundering_probability`, `First_observed_transaction_date`, `Opened_during_observation_flag`, `Active_observation_days`, `Account_activity_multiplier`, `Expected_transaction_count`, `Generated_transaction_count` |
+| Leakage-prone contextual fields | `Transaction_purpose_category`, `KYC_strength`, `Beneficial_ownership_opacity` |
+
+These fields may be useful for simulator validation or post-hoc analysis, but they are not valid predictive inputs for the baseline.
+
+`Counterparty_type` is included in the current reference experiment because the regenerated simulator does not contain a suspicious-only counterparty category. It remains a sensitivity feature and can be excluded reproducibly with `AML_INCLUDE_COUNTERPARTY=0`. Identifiers, raw date/time columns, derived event timestamps, and label columns are also removed from the ordinary feature matrix.
+
+### Engineered features
+
+The sequence pipeline creates behavioural features without consulting the target:
+
+| Engineering family | Features |
+|---|---|
+| Temporal | `hour`, `weekday`, `month`, cyclical sine/cosine encodings, account age at event, elapsed account days, seconds since previous event |
+| Amount dynamics | `amount_log`, `signed_amount`, previous amount, amount change, rolling amount mean/std, amount-to-rolling-mean, round-amount proxy |
+| Flow structure | Inflow/outflow roles, inflow/outflow amounts, cumulative inflow/outflow/net flow/turnover, role counts, inflow-to-outflow ratio |
+| Rapid movement | Seconds since previous inflow/outflow, rapid-after-inflow indicators for 24 hours and seven days, amount relative to cumulative flow |
+| Diversity and account context | Transaction index, account transaction count, currency mismatch, unique counterparties, unique payment types, unique currencies, account amount summaries |
+| Account-history aggregates | Cumulative cross-border, SADC, virtual-asset, procurement, grant, sanctions, adverse-media, public-sector, intermediary, and exposure counts/maxima |
+| Categorical representations | One-hot indicators for low-cardinality categories; training-set frequency encodings for higher-cardinality currencies, locations, countries, and employment/nationality fields |
+
+All rolling and cumulative statistics are computed within an account and ordered by `event_time`. No future account rows are used to create a preceding-event feature. The resulting account history is represented through three streams: all events, inbound events, and outbound events.
+
+### Scaling, encoding, and masking
+
+Continuous variables are fitted with `RobustScaler` on training accounts only, reducing sensitivity to heavy-tailed transaction amounts and extreme financial flows. Categorical variables with at most 20 training categories are one-hot encoded with `handle_unknown="ignore"`; higher-cardinality categorical variables are represented by smoothed training-set frequencies. Missing values are mapped to explicit categories or numeric zero after validation. The fitted scaler, encoder, frequency maps, feature names, padding value, and sequence key are saved together.
+
+Each account is truncated at 100 chronological events. Short histories are post-padded with `-1,000,000`, and every recurrent stream begins with a Keras masking layer. The event auxiliary loss ignores padded labels, so artificial events cannot be learned as normal or laundering behaviour.
+
+### Imbalance handling and split design
+
+The account model splits unique accounts into train, validation, and test partitions before sequence construction. All transactions from an account remain in the same partition. Training retains every laundering account and samples at most three normal accounts per laundering account; validation and test populations are not resampled. The account objective applies a positive-class weighted binary cross-entropy, while the event objective masks padded positions. The XGBoost benchmark uses account-grouped partitions, training-row undersampling, and `scale_pos_weight`; it never resamples the held-out test rows.
+
+### Hyperparameter tuning and model selection
+
+The GRU is a controlled reference configuration rather than an unrestricted search: a 64-unit projection, bidirectional 48-unit GRU stream, Swish activations, L2 regularisation (`2e-4`), dropout, gradient clipping, Adam learning rate `3e-4`, batch size `512`, and a maximum of 20 epochs. Early stopping monitors validation account PR-AUC, and `ReduceLROnPlateau` halves the learning rate when validation PR-AUC stalls. The model checkpoint with the best validation PR-AUC is restored. The operating threshold is selected only on validation data, preferring the highest-F1 threshold that achieves at least 0.80 precision and 0.80 recall when such a point exists.
+
+The XGBoost benchmark uses Optuna's seeded TPE sampler when `AML_XGB_TRIALS` is positive. It tunes tree count, depth, learning rate, subsampling, column sampling, child weight, gamma, L2 regularisation, and positive-class weight, maximising validation average precision with early stopping. For fast reproducible reruns, zero trials uses the recorded best fallback configuration; setting a positive trial count performs a fresh search and saves the trial table.
+
 ## Results at a glance
 
 These are compact reference snapshots generated by the current scripts. Re-run the pipelines to regenerate them for a new simulator release.
