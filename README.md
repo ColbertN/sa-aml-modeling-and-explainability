@@ -86,6 +86,25 @@ The script uses Kolmogorov--Smirnov and Wasserstein distances for numeric distri
 
 Reference outputs from the current regenerated population include 35,000 accounts, 1,441,479 transactions, 4,000 laundering accounts, 31,000 normal accounts, an 11.43% laundering-account rate, a 7.15% laundering-transaction rate, 58 columns, and zero missing cells.
 
+### Current validation results
+
+| Validation result | Observed value | Interpretation |
+|---|---:|---|
+| Transactions | 1,441,479 | Complete regenerated transaction population used for the modelling study |
+| Accounts | 35,000 | Account-level grouping and sequence unit |
+| Laundering accounts | 4,000 (11.43%) | Positive class remains a minority while retaining all positive accounts |
+| Normal accounts | 31,000 (88.57%) | Negative class available for controlled training sampling |
+| Laundering transactions | 7.15% of transactions | Suspicious activity is concentrated within account histories rather than assigned to every event |
+| Missing cells | 0 | No missing values detected in the regenerated modelling-visible table |
+| Payment types | 7 categories | Multiple payment rails are represented |
+| Payment/received currencies | 39 categories each | Currency diversity is present; ZAR is the dominant currency (92.47%) |
+| Sender/receiver bank locations | 41 categories each | Domestic and international routing categories are represented |
+| Counterparty types | 17 categories | No suspicious-only category; normal-only categories are retained as a sensitivity caveat |
+| Median inter-arrival time | 542,131 seconds | Account histories contain measurable temporal spacing rather than unordered rows |
+| Median account burstiness | 0.042 | Temporal regularity is quantified before sequence construction |
+
+The current run is a structural validation run, so no external-reference KS/Wasserstein or sampling-comparison p-values are shown. Those tables are generated automatically when `--reference` or `--sample` is supplied. The complete machine-readable output is available in [`validation_results.xlsx`](results/validation/validation_results.xlsx), with the individual CSV tables beside it.
+
 ![Account class prevalence](results/validation/figures/account_class_prevalence.png)
 
 ![Account history lengths](results/validation/figures/account_history_lengths.png)
