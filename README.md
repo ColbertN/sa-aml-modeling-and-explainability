@@ -2,8 +2,6 @@
 
 Reproducible research code for leakage-controlled anti-money-laundering (AML) detection using South African synthetic transaction data. The repository brings together account-level sequential modelling, transaction-level benchmarking, probability calibration, local and global explainability, and evaluation artefacts in one auditable workflow.
 
-> **Repository scope:** this is the modelling and reproducibility repository. Manuscripts, conference submissions, journal papers, LaTeX sources, cover letters, and publication-specific files are intentionally excluded.
-
 **Project name:** SA-AML Sequence Intelligence  \
 **Data sources:** [SA-AML-DATA-SIMULATION repository](https://github.com/ColbertN/SA-AML-DATA-SIMULATION) · [Zenodo data record 22803333](https://zenodo.org/records/22803333)
 
